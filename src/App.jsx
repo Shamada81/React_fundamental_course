@@ -1,96 +1,38 @@
 import React, {useEffect, useMemo, useRef, useState} from 'react';
-
 import './styles/App.css'
-import PostList from "./components/PostList";
-import MyButton from "./components/UI/button/MyButton";
-import PostForm from "./components/PostForm";
-import PostFilter from "./components/PostFilter";
-import MyModal from "./components/UI/MyModal/MyModal";
-import {usePosts} from "./hooks/usePosts";
-import axios from "axios";
-import PostService from "./API/PostService";
-import Loader from "./components/UI/Loader/Loader";
-import {useFetching} from "./hooks/useFetching";
-import {getPageCount, getPagesArray} from "./utils/pages";
-import Pagination from "./components/UI/pagination/Pagination";
+import {BrowserRouter, Routes, Route, Navigate, Link} from "react-router-dom";
+import About from "./pages/About";
+import Posts from "./pages/Posts";
+import Navbar from "./components/UI/Navbar/Navbar";
+import Error from "./pages/Error";
+import AppRouter from "./components/AppRouter";
+import {AuthContext} from "./context";
+
 
 function App() {
-    const [ posts , setPosts ] = useState([
-        { id: 1, title: 'Javascript', body: 'Description' },
-        { id: 2, title: 'React', body: 'Description' },
-        { id: 3, title: 'Java', body: 'Description' },
-        { id: 4, title: 'PHP', body: 'Description' },
-        { id: 5, title: 'Python', body: 'Description' },
-        { id: 6, title: 'C#', body: 'Description' },
-        { id: 7, title: 'Kotlin', body: 'Description' },
-    ])
-
-    const [ filter, setFilter ] = useState({sort: '', query: ''})
-    const [ modal, setModal ] = useState(false)
-    const sortedAndSearchedPosts = usePosts(posts, filter.sort, filter.query)
-    const [ totalPages, setTotalPages ] = useState(0)
-    const [ limit, setLimit ] = useState(10)
-    const [ page, setPage ] = useState(1)
-    const [ fetchPosts, isPostsLoading, postError ] = useFetching(async (limit, page) => {
-        const response = await PostService.getAll(limit, page);
-        setPosts(response.data)
-        const totalCount = response.headers['x-total-count']
-        setTotalPages(getPageCount(totalCount, limit))
-    })
-
-
-
+    const [ isAuth, setIsAuth ] = useState(false)
+    const [ isLoading, setIsLoading ] = useState(true)
 
     useEffect(() => {
-        fetchPosts(limit, page);
+        if(localStorage.getItem('auth')) {
+            // console.log(localStorage.getItem('auth'))
+            setIsAuth(true)
+        }
+        setIsLoading(false)
     }, [])
 
-
-    const removePost = (id) => {
-        setPosts( posts.filter((post, index) => post.id !== id))
-    }
-
-    const createPost = (newPost) => {
-        setPosts([...posts, newPost])
-        setModal(false)
-        console.log(newPost)
-    }
-
-    const changePage = (page) => {
-        setPage(page)
-        fetchPosts(limit, page)
-    }
-
     return (
-        <div className="App">
-            {/*<button onClick={fetchPosts}>GET POSTS</button>*/}
-            <MyButton style={{marginTop: '30px'}} onClick={() => setModal(true)}>
-                Создать пользователя
-            </MyButton>
-            <MyModal visible={modal} setVisible={setModal}>
-                <PostForm create={createPost}/>
-            </MyModal>
-            <hr style={{ margin: '15px 0'}}/>
-           <PostFilter
-               filter={filter}
-               setFilter={setFilter}
-           />
-            {postError &&
-                <h1>Произошла ошибка</h1>
-            }
-            {isPostsLoading
-                ?<div style={{display: 'flex', justifyContent: 'center', marginTop: '50px'}}>
-                    <Loader />
-                </div>
-                :<PostList post={sortedAndSearchedPosts} remove={removePost} title='Список постов'/>
-            }
-            <Pagination
-                page={page}
-                changePage={changePage}
-                totalPages={totalPages}
-            />
-        </div>
-    );
+        <AuthContext.Provider value ={{
+            isAuth,
+            setIsAuth,
+            isLoading
+        }}>
+            <BrowserRouter>
+                <Navbar />
+                <AppRouter />
+            </BrowserRouter>
+        </AuthContext.Provider>
+    )
 }
 
 export default App;
